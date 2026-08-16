@@ -1,0 +1,994 @@
+﻿(() => {
+  const data = window.SHYAMA_DATA || {
+    properties: [],
+    investments: [],
+    projects: [],
+    contact: {},
+    propertyTypes: [],
+    propertyCities: [],
+    investmentTypes: [],
+    investmentCities: []
+  };
+
+  const byId = (id) => document.getElementById(id);
+  const qs = (selector, scope = document) => scope.querySelector(selector);
+  const qsa = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+
+  const toCurrency = (text) => text || "Price on request";
+
+  const slugToTitle = (value) => {
+    if (!value) return "";
+    return value.replace(/-/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+  };
+
+  const extractMediaKey = (path) => {
+    if (!path) return "";
+    const fullMatch = path.match(/(IMG|VID)-(\d{8})-WA\d+/i);
+    if (fullMatch) return `${fullMatch[1].toUpperCase()}-${fullMatch[2]}`;
+    const dateOnlyMatch = path.match(/(20\d{6})/);
+    return dateOnlyMatch ? dateOnlyMatch[1] : "";
+  };
+
+  const parseMediaMeta = (path) => {
+    if (!path) return null;
+    const fullMatch = path.match(/(IMG|VID)-(\d{8})-WA(\d+)/i);
+    if (fullMatch) {
+      return {
+        kind: fullMatch[1].toUpperCase(),
+        date: fullMatch[2],
+        sequence: Number(fullMatch[3])
+      };
+    }
+    const dateOnlyMatch = path.match(/(20\d{6})/);
+    if (!dateOnlyMatch) return null;
+    return {
+      kind: "",
+      date: dateOnlyMatch[1],
+      sequence: null
+    };
+  };
+
+  const normalizeRecordMedia = (record) => {
+    const image = record.image || (Array.isArray(record.gallery) && record.gallery[0]) || "assets/images/shyama-logo.jpg";
+    const rawGallery = [image, ...(Array.isArray(record.gallery) ? record.gallery : [])].filter(Boolean);
+    const uniqueGallery = [...new Set(rawGallery)];
+    const baseKey = extractMediaKey(image);
+    const baseMeta = parseMediaMeta(image);
+    let matchedGallery = baseKey
+      ? uniqueGallery.filter((path) => extractMediaKey(path) === baseKey)
+      : uniqueGallery;
+
+    if (baseMeta?.date) {
+      const sameSeries = uniqueGallery.filter((path) => {
+        const meta = parseMediaMeta(path);
+        if (!meta || meta.date !== baseMeta.date) return false;
+        if (!Number.isFinite(baseMeta.sequence) || !Number.isFinite(meta.sequence)) return true;
+        return Math.abs(meta.sequence - baseMeta.sequence) <= 10;
+      });
+      if (sameSeries.length) matchedGallery = sameSeries;
+    }
+    const gallery = (matchedGallery.length ? matchedGallery : uniqueGallery).slice(0, 6);
+    if (!gallery.includes(image)) gallery.unshift(image);
+    return {
+      ...record,
+      image,
+      gallery: [...new Set(gallery)]
+    };
+  };
+
+  const properties = (data.properties || []).map(normalizeRecordMedia);
+  const investments = (data.investments || []).map(normalizeRecordMedia);
+  const allRecords = [...properties, ...investments];
+  const savedCollections = {
+    shortlist: "shyamaShortlist",
+    compare: "shyamaCompare"
+  };
+
+  const propertyTypeAliases = {
+    "agriculture-land": ["agriculture-land", "farm-land", "farmhouse"],
+    "farm-land": ["farm-land", "farmhouse"]
+  };
+
+  const cityAliases = {
+    Ahmedabad: ["Ahmedabad", "Ahmedabad Region"],
+    "Delhi Road (Close to Delhi)": ["Delhi Road", "Jaipur Delhi Road"]
+  };
+
+  const statusAliases = {
+    ready: ["ready", "available"],
+    new: ["pre booking", "limited", "open", "possession", "launch"],
+    income: ["income", "yield", "rental"]
+  };
+
+  const buyBudgetOptions = [
+    ["", "Any budget"],
+    ["100-300", "INR 1 Crore to 3 Crore"],
+    ["300-500", "INR 3 Crore to 5 Crore"],
+    ["500-1000", "INR 5 Crore to 10 Crore"]
+  ];
+
+  const rentBudgetOptions = [
+    ["", "Any budget"],
+    ["1-2", "INR 1 Lakh to 2 Lakh / month"],
+    ["2-5", "INR 2 Lakh to 5 Lakh / month"],
+    ["5-10", "INR 5 Lakh to 10 Lakh / month"],
+    ["10-999", "Above INR 10 Lakh / month"]
+  ];
+
+  const normalizeSearchText = (value) => (value || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const setSelectOptions = (select, options, preferredValue = select.value) => {
+    select.innerHTML = "";
+    options.forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+    select.value = options.some(([value]) => value === preferredValue) ? preferredValue : "";
+  };
+
+  const updatePropertyBudgetOptions = (purpose = "buy") => {
+    const options = purpose === "rent" ? rentBudgetOptions : buyBudgetOptions;
+    qsa("[data-property-budget-select]").forEach((select) => {
+      setSelectOptions(select, options);
+    });
+  };
+
+  const updateInvestmentBudgetOptions = () => {
+    qsa("[data-investment-budget-select]").forEach((select) => {
+      setSelectOptions(select, buyBudgetOptions);
+    });
+  };
+
+  const matchesSelectedCity = (record, selectedCity) => {
+    if (!selectedCity) return true;
+    const acceptedCities = cityAliases[selectedCity] || [selectedCity];
+    const recordCity = normalizeSearchText(record.city);
+    const recordLocation = normalizeSearchText(`${record.city} ${record.locality} ${record.title} ${record.summary}`);
+
+    return acceptedCities.some((city) => {
+      const normalizedCity = normalizeSearchText(city);
+      return recordCity === normalizedCity || recordLocation.includes(normalizedCity);
+    });
+  };
+
+  const getSavedIds = (collection) => {
+    try {
+      return JSON.parse(localStorage.getItem(savedCollections[collection]) || "[]");
+    } catch {
+      return [];
+    }
+  };
+
+  const setSavedIds = (collection, ids) => {
+    localStorage.setItem(savedCollections[collection], JSON.stringify([...new Set(ids)]));
+  };
+
+  const isSaved = (collection, id) => getSavedIds(collection).includes(id);
+
+  const toggleSavedRecord = (collection, id) => {
+    const ids = getSavedIds(collection);
+    if (ids.includes(id)) {
+      setSavedIds(collection, ids.filter((item) => item !== id));
+      return false;
+    }
+    if (collection === "compare" && ids.length >= 3) {
+      window.alert("You can compare up to 3 properties at a time.");
+      return false;
+    }
+    setSavedIds(collection, [...ids, id]);
+    return true;
+  };
+
+  const syncPortalActions = () => {
+    qsa("[data-portal-action]").forEach((button) => {
+      const action = button.dataset.portalAction;
+      const id = button.dataset.recordId;
+      const active = isSaved(action, id);
+      button.classList.toggle("active", active);
+      if (action === "shortlist") button.textContent = active ? "Shortlisted" : "Shortlist";
+      if (action === "compare") button.textContent = active ? "Added to Compare" : "Compare";
+    });
+
+    qsa("[data-saved-count]").forEach((node) => {
+      const shortlistCount = getSavedIds("shortlist").length;
+      const compareCount = getSavedIds("compare").length;
+      node.textContent = `${shortlistCount} shortlisted | ${compareCount} compare`;
+    });
+  };
+
+  const initPortalActions = () => {
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-portal-action]");
+      if (!button) return;
+      event.preventDefault();
+      toggleSavedRecord(button.dataset.portalAction, button.dataset.recordId);
+      syncPortalActions();
+    });
+    syncPortalActions();
+  };
+
+  const portalCardTools = (item) => `
+    <div class="property-card-tools">
+      <button type="button" class="card-tool" data-portal-action="shortlist" data-record-id="${item.id}">Shortlist</button>
+      <button type="button" class="card-tool" data-portal-action="compare" data-record-id="${item.id}">Compare</button>
+    </div>
+  `;
+
+  const cardVisual = (item) => {
+    if (item.mediaPending) {
+      return `
+        <div class="property-media-pending">
+          <span>Verified listing</span>
+          <strong>Property media available on enquiry</strong>
+        </div>
+      `;
+    }
+    return `<img src="${item.image}" alt="${item.title}">`;
+  };
+
+  const getSelectedText = (select) => select?.selectedOptions?.[0]?.textContent || "";
+
+  const renderActiveFilters = (target, filters, controls) => {
+    if (!target) return;
+    const chips = [];
+    if (filters.purpose && filters.purpose !== "all") chips.push(["Intent", getSelectedText(controls.purpose)]);
+    if (filters.city) chips.push(["City", getSelectedText(controls.city)]);
+    if (filters.type) chips.push(["Type", getSelectedText(controls.type)]);
+    if (filters.status) chips.push(["Status", getSelectedText(controls.status)]);
+    if (filters.budget) chips.push(["Budget", getSelectedText(controls.budget)]);
+    if (filters.keyword) chips.push(["Keyword", filters.keyword]);
+    chips.push(["Sort", getSelectedText(controls.sort) || "Price High to Low"]);
+
+    target.innerHTML = "";
+    chips.forEach(([label, value]) => {
+      const chip = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = `${label}:`;
+      chip.append(strong, ` ${value}`);
+      target.appendChild(chip);
+    });
+  };
+
+  const matchesSelectedStatus = (record, selectedStatus) => {
+    if (!selectedStatus) return true;
+    const accepted = statusAliases[selectedStatus] || [selectedStatus];
+    const text = normalizeSearchText(`${record.status} ${record.tag} ${record.summary}`);
+    return accepted.some((status) => text.includes(normalizeSearchText(status)));
+  };
+
+  const buildWhatsAppLink = (item) => {
+    const base = data.contact.whatsappLink || "https://wa.me/918905664545";
+    const kind = item.recordType === "investment" ? "investment opportunity" : "property";
+    const message = `Hi, I am interested in the ${kind}: ${item.title} (${item.locality}, ${item.city}). Please share details.`;
+    const encoded = encodeURIComponent(message);
+    return base.includes("?") ? `${base}&text=${encoded}` : `${base}?text=${encoded}`;
+  };
+
+  const createPropertyCard = (property) => {
+    const wrapper = document.createElement("article");
+    wrapper.className = "property-card";
+
+    wrapper.innerHTML = `
+      <div class="property-thumb">
+        ${cardVisual(property)}
+        <span class="pill pill-${property.purpose}">${property.purpose.toUpperCase()}</span>
+      </div>
+      <div class="property-body">
+        <div class="property-price-line">
+          <div class="property-price">${toCurrency(property.priceText)}</div>
+          ${property.sourceDate === "2026-07-13" ? '<span class="card-source-tag">New July</span>' : ""}
+        </div>
+        <h3>${property.title}</h3>
+        <p class="property-location">${property.locality}, ${property.city}</p>
+        <p class="property-summary">${property.summary}</p>
+        <div class="property-meta">
+          <span>${property.beds > 0 ? `${property.beds} BHK` : slugToTitle(property.type)}</span>
+          <span>${property.areaText}</span>
+          <span>${property.status}</span>
+        </div>
+        ${portalCardTools(property)}
+        <div class="property-actions">
+          <a class="btn btn-outline" href="property.html?id=${property.id}">View Details</a>
+          <a class="btn btn-solid" target="_blank" rel="noopener" href="${buildWhatsAppLink(property)}">Enquire</a>
+        </div>
+      </div>
+    `;
+
+    return wrapper;
+  };
+
+  const createInvestmentCard = (investment) => {
+    const wrapper = document.createElement("article");
+    wrapper.className = "property-card";
+
+    wrapper.innerHTML = `
+      <div class="property-thumb">
+        ${cardVisual(investment)}
+        <span class="pill pill-investment">INVEST</span>
+      </div>
+      <div class="property-body">
+        <div class="property-price-line">
+          <div class="property-price">${toCurrency(investment.priceText)}</div>
+          ${investment.sourceDate === "2026-07-13" ? '<span class="card-source-tag">New July</span>' : ""}
+        </div>
+        <h3>${investment.title}</h3>
+        <p class="property-location">${investment.locality}, ${investment.city}</p>
+        <p class="property-summary">${investment.summary}</p>
+        <div class="property-meta">
+          <span>${slugToTitle(investment.type)}</span>
+          <span>${investment.areaText}</span>
+          <span>${investment.status}</span>
+        </div>
+        ${portalCardTools(investment)}
+        <div class="property-actions">
+          <a class="btn btn-outline" href="property.html?id=${investment.id}">View Details</a>
+          <a class="btn btn-solid" target="_blank" rel="noopener" href="${buildWhatsAppLink(investment)}">Discuss</a>
+        </div>
+      </div>
+    `;
+
+    return wrapper;
+  };
+
+  const setContactBindings = () => {
+    const phone1 = data.contact.phones?.[0] || "+91 91458 82313";
+    const phone2 = data.contact.phones?.[1] || "";
+    const email1 = data.contact.emails?.[0] || "Shyamachandawat@shluso.com";
+    const email2 = data.contact.emails?.[1] || "Syamachandawat@gmail.com";
+    const callPrimary = data.contact.callPrimary || "+919145882313";
+    const whatsapp = data.contact.whatsappLink || "https://wa.me/918905664545";
+
+    qsa("[data-brand]").forEach((el) => {
+      el.textContent = data.contact.brand || "Shyama Luxury Solutions";
+    });
+
+    qsa("[data-tagline]").forEach((el) => {
+      el.textContent = data.contact.tagline || "Luxury Property Consultant";
+    });
+
+    qsa("[data-phone-primary]").forEach((el) => {
+      el.textContent = phone1;
+    });
+
+    qsa("[data-phone-secondary]").forEach((el) => {
+      el.textContent = phone2;
+      if (!phone2) el.closest("p, .info-item")?.remove();
+    });
+
+    qsa("[data-email-primary]").forEach((el) => {
+      el.textContent = email1;
+    });
+
+    qsa("[data-email-secondary]").forEach((el) => {
+      el.textContent = email2;
+    });
+
+    qsa("[data-address]").forEach((el) => {
+      el.textContent = data.contact.address || "Jaipur, Rajasthan";
+    });
+
+    qsa("[data-call-link]").forEach((el) => {
+      el.setAttribute("href", `tel:${callPrimary}`);
+    });
+
+    qsa("[data-whatsapp-link]").forEach((el) => {
+      el.setAttribute("href", whatsapp);
+    });
+  };
+
+  const initYear = () => {
+    qsa("[data-current-year]").forEach((el) => {
+      el.textContent = String(new Date().getFullYear());
+    });
+  };
+
+  const initHomeCounts = () => {
+    qsa("[data-count-properties]").forEach((el) => {
+      el.textContent = String(properties.length);
+    });
+    qsa("[data-count-investments]").forEach((el) => {
+      el.textContent = String(investments.length);
+    });
+    qsa("[data-count-projects]").forEach((el) => {
+      el.textContent = String(data.projects.length);
+    });
+  };
+
+  const initMobileNav = () => {
+    const toggle = qs("[data-mobile-toggle]");
+    const nav = qs("[data-site-nav]");
+    if (!toggle || !nav) return;
+
+    toggle.addEventListener("click", () => {
+      nav.classList.toggle("is-open");
+      toggle.classList.toggle("is-open");
+    });
+  };
+
+  const setPurpose = (purpose) => {
+    qsa("[data-purpose-group]").forEach((group) => {
+      qsa("button", group).forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.value === purpose);
+      });
+    });
+
+    qsa("[data-purpose-input]").forEach((input) => {
+      input.value = purpose;
+    });
+
+    updatePropertyBudgetOptions(purpose);
+  };
+
+  const initPurposeButtons = () => {
+    const saved = localStorage.getItem("shyamaPurpose") || "buy";
+    setPurpose(saved);
+
+    qsa("[data-purpose-group] button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const purpose = btn.dataset.value || "buy";
+        localStorage.setItem("shyamaPurpose", purpose);
+        setPurpose(purpose);
+      });
+    });
+  };
+
+  const populatePropertyOptions = () => {
+    qsa("[data-city-select]").forEach((select) => {
+      const selected = select.value;
+      data.propertyCities.forEach((city) => {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        select.appendChild(option);
+      });
+      if (selected) select.value = selected;
+    });
+
+    qsa("[data-type-select]").forEach((select) => {
+      const selected = select.value;
+      data.propertyTypes.forEach((type) => {
+        const option = document.createElement("option");
+        option.value = type;
+        option.textContent = slugToTitle(type);
+        select.appendChild(option);
+      });
+      if (selected) select.value = selected;
+    });
+  };
+
+  const populateInvestmentOptions = () => {
+    qsa("[data-invest-city-select]").forEach((select) => {
+      const selected = select.value;
+      data.investmentCities.forEach((city) => {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        select.appendChild(option);
+      });
+      if (selected) select.value = selected;
+    });
+
+    qsa("[data-invest-type-select]").forEach((select) => {
+      const selected = select.value;
+      data.investmentTypes.forEach((type) => {
+        const option = document.createElement("option");
+        option.value = type;
+        option.textContent = slugToTitle(type);
+        select.appendChild(option);
+      });
+      if (selected) select.value = selected;
+    });
+  };
+
+  const initHomeSearch = () => {
+    const form = byId("homeSearchForm");
+    if (!form) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = new FormData(form);
+      const params = new URLSearchParams();
+      ["purpose", "city", "type", "budget", "keyword"].forEach((key) => {
+        const value = (payload.get(key) || "").toString().trim();
+        if (value) params.set(key, value);
+      });
+      window.location.href = `properties.html?${params.toString()}`;
+    });
+  };
+
+  const initFeaturedListings = () => {
+    const grid = qs("[data-featured-grid]");
+    if (!grid) return;
+
+    const render = (purpose) => {
+      grid.innerHTML = "";
+      const cards = properties
+        .filter((property) => property.purpose === purpose)
+        .sort((a, b) => (b.priceNumeric || 0) - (a.priceNumeric || 0))
+        .slice(0, 6);
+
+      cards.forEach((property) => {
+        grid.appendChild(createPropertyCard(property));
+      });
+      syncPortalActions();
+    };
+
+    const saved = localStorage.getItem("shyamaPurpose") || "buy";
+    render(saved);
+
+    qsa("[data-featured-tab]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.value === saved);
+      btn.addEventListener("click", () => {
+        const purpose = btn.dataset.value || "buy";
+        localStorage.setItem("shyamaPurpose", purpose);
+        qsa("[data-featured-tab]").forEach((tab) => {
+          tab.classList.toggle("active", tab === btn);
+        });
+        render(purpose);
+      });
+    });
+  };
+
+  const initLatestListings = () => {
+    const grid = qs("[data-latest-grid]");
+    if (!grid) return;
+
+    const latest = [...properties, ...investments]
+      .filter((item) => item.sourceDate === "2026-07-13")
+      .sort((a, b) => (b.priceNumeric || 0) - (a.priceNumeric || 0))
+      .slice(0, 6);
+
+    grid.innerHTML = "";
+    latest.forEach((item) => {
+      grid.appendChild(item.recordType === "investment" ? createInvestmentCard(item) : createPropertyCard(item));
+    });
+    syncPortalActions();
+  };
+
+  const initInvestmentHighlights = () => {
+    const grid = qs("[data-investment-grid]");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+    const items = [...investments]
+      .sort((a, b) => (b.priceNumeric || 0) - (a.priceNumeric || 0))
+      .slice(0, 6);
+
+    items.forEach((item) => {
+      grid.appendChild(createInvestmentCard(item));
+    });
+    syncPortalActions();
+  };
+
+  const parseBudget = (budget) => {
+    if (!budget) return null;
+    const [min, max] = budget.split("-").map(Number);
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+    return { min, max };
+  };
+
+  const sortItems = (items, sortBy) => {
+    const sorted = [...items];
+    switch (sortBy) {
+      case "priceLow":
+        sorted.sort((a, b) => (a.priceNumeric || 99999) - (b.priceNumeric || 99999));
+        break;
+      case "priceHigh":
+        sorted.sort((a, b) => (b.priceNumeric || 0) - (a.priceNumeric || 0));
+        break;
+      case "newest":
+        sorted.sort((a, b) => {
+          const dateDifference = String(b.sourceDate || "").localeCompare(String(a.sourceDate || ""));
+          return dateDifference || (b.priceNumeric || 0) - (a.priceNumeric || 0);
+        });
+        break;
+      case "featured":
+        sorted.sort((a, b) => (a.featuredRank || 99) - (b.featuredRank || 99));
+        break;
+      default:
+        sorted.sort((a, b) => (b.priceNumeric || 0) - (a.priceNumeric || 0));
+        break;
+    }
+    return sorted;
+  };
+
+  const filterProperties = (filters) => {
+    return properties.filter((property) => {
+      const matchesPurpose = !filters.purpose || filters.purpose === "all" || property.purpose === filters.purpose;
+      const matchesCity = matchesSelectedCity(property, filters.city);
+      const acceptedTypes = propertyTypeAliases[filters.type] || [filters.type];
+      const matchesType = !filters.type || acceptedTypes.includes(property.type);
+      const matchesStatus = matchesSelectedStatus(property, filters.status);
+
+      const budget = parseBudget(filters.budget);
+      const matchesBudget = !budget || !Number.isFinite(property.priceNumeric)
+        ? true
+        : property.priceNumeric >= budget.min && property.priceNumeric <= budget.max;
+
+      const text = `${property.title} ${property.locality} ${property.city} ${property.summary}`.toLowerCase();
+      const keyword = (filters.keyword || "").toLowerCase();
+      const matchesKeyword = !keyword || text.includes(keyword);
+
+      return matchesPurpose && matchesCity && matchesType && matchesStatus && matchesBudget && matchesKeyword;
+    });
+  };
+
+  const filterInvestments = (filters) => {
+    return investments.filter((investment) => {
+      const matchesCity = matchesSelectedCity(investment, filters.city);
+      const matchesType = !filters.type || investment.type === filters.type;
+
+      const budget = parseBudget(filters.budget);
+      const matchesBudget = !budget || !Number.isFinite(investment.priceNumeric)
+        ? true
+        : investment.priceNumeric >= budget.min && investment.priceNumeric <= budget.max;
+
+      const text = `${investment.title} ${investment.locality} ${investment.city} ${investment.summary}`.toLowerCase();
+      const keyword = (filters.keyword || "").toLowerCase();
+      const matchesKeyword = !keyword || text.includes(keyword);
+
+      return matchesCity && matchesType && matchesBudget && matchesKeyword;
+    });
+  };
+
+  const initListingPage = () => {
+    const grid = byId("listingGrid");
+    if (!grid) return;
+
+    const controls = {
+      purpose: byId("filterPurpose"),
+      city: byId("filterCity"),
+      type: byId("filterType"),
+      status: byId("filterStatus"),
+      budget: byId("filterBudget"),
+      keyword: byId("filterKeyword"),
+      sort: byId("filterSort")
+    };
+
+    const resultCount = byId("resultCount");
+    const activeFilters = byId("activeFilters");
+    const clearBtn = byId("clearFilters");
+
+    const params = new URLSearchParams(window.location.search);
+    const purposeValue = params.get("purpose");
+    if (controls.purpose && purposeValue) {
+      controls.purpose.value = purposeValue;
+    }
+
+    if (controls.purpose && !controls.purpose.value) {
+      controls.purpose.value = localStorage.getItem("shyamaPurpose") || "all";
+    }
+
+    updatePropertyBudgetOptions(controls.purpose?.value || "buy");
+
+    Object.entries(controls).forEach(([key, node]) => {
+      if (!node) return;
+      if (key === "purpose") return;
+      const value = params.get(key);
+      if (value) node.value = value;
+    });
+
+    const collectFilters = () => ({
+      purpose: controls.purpose?.value || "all",
+      city: controls.city?.value || "",
+      type: controls.type?.value || "",
+      status: controls.status?.value || "",
+      budget: controls.budget?.value || "",
+      keyword: controls.keyword?.value || "",
+      sort: controls.sort?.value || "priceHigh"
+    });
+
+    const render = () => {
+      updatePropertyBudgetOptions(controls.purpose?.value || "buy");
+      const filters = collectFilters();
+      localStorage.setItem("shyamaPurpose", filters.purpose === "all" ? "buy" : filters.purpose);
+
+      const filtered = filterProperties(filters);
+      const sorted = sortItems(filtered, filters.sort);
+
+      grid.innerHTML = "";
+      sorted.forEach((property) => {
+        grid.appendChild(createPropertyCard(property));
+      });
+      syncPortalActions();
+
+      if (resultCount) {
+        resultCount.textContent = `${sorted.length} properties found`;
+      }
+      renderActiveFilters(activeFilters, filters, controls);
+
+      if (!sorted.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "No matching properties. Try changing city, type, or budget.";
+        grid.appendChild(empty);
+      }
+
+      const nextParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== "priceHigh" && value !== "all") nextParams.set(key, value);
+      });
+      const nextUrl = `properties.html${nextParams.toString() ? `?${nextParams.toString()}` : ""}`;
+      window.history.replaceState({}, "", nextUrl);
+    };
+
+    Object.values(controls).forEach((control) => {
+      if (!control) return;
+      control.addEventListener("change", render);
+      control.addEventListener("input", render);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        Object.entries(controls).forEach(([key, node]) => {
+          if (!node) return;
+          node.value = key === "purpose" ? "all" : key === "sort" ? "priceHigh" : "";
+        });
+        render();
+      });
+    }
+
+    render();
+  };
+
+  const initInvestmentPage = () => {
+    const grid = byId("investmentGrid");
+    if (!grid) return;
+
+    const controls = {
+      city: byId("investmentCity"),
+      type: byId("investmentType"),
+      budget: byId("investmentBudget"),
+      keyword: byId("investmentKeyword"),
+      sort: byId("investmentSort")
+    };
+
+    const resultCount = byId("investmentCount");
+    const clearBtn = byId("clearInvestmentFilters");
+
+    const params = new URLSearchParams(window.location.search);
+    updateInvestmentBudgetOptions();
+
+    Object.entries(controls).forEach(([key, node]) => {
+      if (!node) return;
+      const value = params.get(key);
+      if (value) node.value = value;
+    });
+
+    const collectFilters = () => ({
+      city: controls.city?.value || "",
+      type: controls.type?.value || "",
+      budget: controls.budget?.value || "",
+      keyword: controls.keyword?.value || "",
+      sort: controls.sort?.value || "priceHigh"
+    });
+
+    const render = () => {
+      const filters = collectFilters();
+      const filtered = filterInvestments(filters);
+      const sorted = sortItems(filtered, filters.sort);
+
+      grid.innerHTML = "";
+      sorted.forEach((investment) => {
+        grid.appendChild(createInvestmentCard(investment));
+      });
+      syncPortalActions();
+
+      if (resultCount) {
+        resultCount.textContent = `${sorted.length} opportunities found`;
+      }
+
+      if (!sorted.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "No matching investment opportunities. Try changing filters.";
+        grid.appendChild(empty);
+      }
+
+      const nextParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== "priceHigh") nextParams.set(key, value);
+      });
+      const nextUrl = `investments.html${nextParams.toString() ? `?${nextParams.toString()}` : ""}`;
+      window.history.replaceState({}, "", nextUrl);
+    };
+
+    Object.values(controls).forEach((control) => {
+      if (!control) return;
+      control.addEventListener("change", render);
+      control.addEventListener("input", render);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        Object.entries(controls).forEach(([key, node]) => {
+          if (!node) return;
+          node.value = key === "sort" ? "priceHigh" : "";
+        });
+        render();
+      });
+    }
+
+    render();
+  };
+
+  const initPropertyPage = () => {
+    const pageRoot = byId("propertyPage");
+    if (!pageRoot) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const record = allRecords.find((item) => item.id === id) || allRecords[0];
+
+    if (!record) return;
+
+    byId("propertyTitle").textContent = record.title;
+    byId("propertyPrice").textContent = record.priceText;
+
+    const locationLabel = `${record.locality}, ${record.city}`;
+    byId("propertyLocationTitle").textContent = locationLabel;
+    byId("propertyLocationLine").textContent = locationLabel;
+    byId("propertyType").textContent = slugToTitle(record.type);
+
+    const purposeLabel = record.recordType === "investment" ? "INVESTMENT" : record.purpose.toUpperCase();
+    byId("propertyPurposeBadge").textContent = purposeLabel;
+    byId("propertyStatus").textContent = record.status;
+    byId("propertyArea").textContent = record.areaText;
+    byId("propertyBeds").textContent = record.beds > 0 ? `${record.beds} BHK` : "-";
+    byId("propertyBaths").textContent = record.baths > 0 ? String(record.baths) : "-";
+    byId("propertyParking").textContent = record.parking > 0 ? String(record.parking) : "-";
+    byId("propertySummary").textContent = record.summary;
+    byId("detailShortlist")?.setAttribute("data-record-id", record.id);
+    byId("detailCompare")?.setAttribute("data-record-id", record.id);
+
+    const mainImage = byId("propertyMainImage");
+    const mediaNotice = byId("propertyMediaNotice");
+    if (mainImage) {
+      mainImage.hidden = Boolean(record.mediaPending);
+      if (!record.mediaPending) {
+        mainImage.src = record.gallery[0] || record.image;
+        mainImage.alt = record.title;
+      }
+    }
+    if (mediaNotice) {
+      mediaNotice.hidden = !record.mediaPending;
+    }
+
+    const thumbRow = byId("propertyThumbRow");
+    if (thumbRow) {
+      thumbRow.innerHTML = "";
+      thumbRow.hidden = Boolean(record.mediaPending);
+      if (!record.mediaPending) record.gallery.forEach((imagePath, index) => {
+        const btn = document.createElement("button");
+        btn.className = `thumb ${index === 0 ? "active" : ""}`;
+        btn.type = "button";
+        btn.innerHTML = `<img src="${imagePath}" alt="${record.title} image ${index + 1}">`;
+        btn.addEventListener("click", () => {
+          if (mainImage) mainImage.src = imagePath;
+          qsa(".thumb", thumbRow).forEach((thumb) => thumb.classList.remove("active"));
+          btn.classList.add("active");
+        });
+        thumbRow.appendChild(btn);
+      });
+    }
+
+    const amenities = byId("propertyAmenities");
+    if (amenities) {
+      amenities.innerHTML = "";
+      record.amenities.forEach((amenity) => {
+        const item = document.createElement("li");
+        item.textContent = amenity;
+        amenities.appendChild(item);
+      });
+    }
+
+    const wa = byId("propertyWhatsApp");
+    if (wa) wa.setAttribute("href", buildWhatsAppLink(record));
+
+    const call = byId("propertyCall");
+    if (call) call.setAttribute("href", `tel:${data.contact.callPrimary || "+919145882313"}`);
+
+    const similar = byId("similarProperties");
+    if (similar) {
+      similar.innerHTML = "";
+      const similarItems = allRecords
+        .filter((item) => item.id !== record.id)
+        .filter((item) => item.recordType === record.recordType)
+        .filter((item) => item.city === record.city || item.type === record.type)
+        .slice(0, 3);
+
+      similarItems.forEach((item) => {
+        similar.appendChild(item.recordType === "investment" ? createInvestmentCard(item) : createPropertyCard(item));
+      });
+      syncPortalActions();
+    }
+  };
+
+  const initProjects = () => {
+    const projectGrid = qs("[data-project-grid]");
+    if (!projectGrid) return;
+
+    projectGrid.innerHTML = "";
+    const limit = Number(projectGrid.dataset.limit || 0);
+    const projectsToShow = [...data.projects]
+      .sort((a, b) => Number(Boolean(b.isLatest)) - Number(Boolean(a.isLatest)))
+      .slice(0, limit || data.projects.length);
+
+    projectsToShow.forEach((project) => {
+      const card = document.createElement("article");
+      card.className = "project-card";
+      const action = project.recordId
+        ? `<a class="btn btn-outline" href="property.html?id=${project.recordId}">Explore Details</a>`
+        : project.enquiryOnly || !project.file
+          ? `<a class="btn btn-outline" href="contact.html">Request Details</a>`
+          : `<a class="btn btn-outline" href="${project.file}" target="_blank" rel="noopener">Open Brochure</a>`;
+      card.innerHTML = `
+        ${project.isLatest ? '<span class="project-new-label">New July Inventory</span>' : ""}
+        <h3>${project.title}</h3>
+        <p>${project.location}</p>
+        <span>${project.type}</span>
+        ${action}
+      `;
+      projectGrid.appendChild(card);
+    });
+  };
+
+  const initContactForm = () => {
+    const form = byId("contactForm");
+    if (!form) return;
+
+    const status = byId("contactStatus");
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = new FormData(form);
+
+      const name = (payload.get("name") || "").toString().trim();
+      const phone = (payload.get("phone") || "").toString().trim();
+      const requirement = (payload.get("requirement") || "").toString().trim();
+      const message = (payload.get("message") || "").toString().trim();
+
+      const text = [
+        "Hello Shyama Luxury Solutions,",
+        `Name: ${name}`,
+        `Phone: ${phone}`,
+        `Requirement: ${requirement}`,
+        `Message: ${message}`
+      ].join("\n");
+
+      const waBase = data.contact.whatsappLink || "https://wa.me/918905664545";
+      const waSeparator = waBase.includes("?") ? "&" : "?";
+      const link = `${waBase}${waSeparator}text=${encodeURIComponent(text)}`;
+      window.open(link, "_blank", "noopener");
+
+      if (status) {
+        status.textContent = "Thank you. Your request has been sent successfully.";
+      }
+
+      form.reset();
+    });
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initYear();
+    initHomeCounts();
+    setContactBindings();
+    initMobileNav();
+    initPortalActions();
+    initPurposeButtons();
+    populatePropertyOptions();
+    populateInvestmentOptions();
+    initHomeSearch();
+    initLatestListings();
+    initFeaturedListings();
+    initInvestmentHighlights();
+    initProjects();
+    initListingPage();
+    initInvestmentPage();
+    initPropertyPage();
+    initContactForm();
+  });
+})();
+

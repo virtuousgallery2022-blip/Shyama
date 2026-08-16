@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LSR53XPQTL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-LSR53XPQTL');
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17130f">
+  <link rel="manifest" href="site.webmanifest">
+  <title>Shyama Luxury Solutions | Properties and Investments</title>
+  <meta name="description" content="Buy, rent, and investment opportunities with trusted advisory by Shyama Luxury Solutions.">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/images/favicon-48.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="top-strip">
+    <div class="container">
+      <span>Call: <strong data-phone-primary>+91 91458 82313</strong></span>
+      <span>Email: <strong data-email-primary>Shyamachandawat@shluso.com</strong></span>
+      <span>Sale | Rent | Invest</span>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+            <a class="brand" href="index.html">
+        <img class="brand-logo" src="assets/images/shyama-logo.jpg" alt="Shyama Luxury Solutions logo">
+        <span class="brand-text">
+          <span class="brand-name" data-brand>Shyama Luxury Solutions</span>
+          <span class="brand-tag" data-tagline>Luxury Property Consultant</span>
+        </span>
+      </a>
+            <nav class="site-nav" data-site-nav>
+        <a href="properties.html?purpose=buy">Buy</a>
+        <a href="properties.html?purpose=rent">Rent</a>
+
+        <details class="nav-dropdown nav-mega">
+          <summary>Property Types</summary>
+          <div class="mega-menu">
+            <a class="mega-item" href="properties.html?type=apartment">
+              <h4>Residential</h4>
+              <p>Plots, flats, villas, builder floors, houses</p>
+            </a>
+            <a class="mega-item" href="investments.html?type=hospitality">
+              <h4>Commercial</h4>
+              <p>Shops, offices, showrooms, commercial plots</p>
+            </a>
+            <a class="mega-item" href="investments.html?type=township">
+              <h4>Industrial</h4>
+              <p>Industrial plots, sheds, warehouses, RIICO properties</p>
+            </a>
+            <a class="mega-item" href="properties.html?type=agriculture-land">
+              <h4>Agriculture Land</h4>
+              <p>Agricultural land, rural parcels, and long-term land holdings</p>
+            </a>
+            <a class="mega-item" href="properties.html?type=farm-land">
+              <h4>Farm Land</h4>
+              <p>Farm land, farmhouse land, and lifestyle acreage</p>
+            </a>
+          </div>
+        </details>
+
+        <details class="nav-dropdown">
+          <summary>Cities</summary>
+          <div class="dropdown-menu city-menu">
+            <a href="properties.html?city=Jaipur">Jaipur</a>
+            <a href="properties.html?city=Bhilwara">Bhilwara</a>
+            <a href="properties.html?city=Kota">Kota</a>
+            <a href="properties.html?city=Tonk">Tonk</a>
+            <a href="properties.html?city=Udaipur">Udaipur</a>
+            <a href="properties.html?city=Pushkar">Pushkar</a>
+            <a href="properties.html?city=Jodhpur">Jodhpur</a>
+            <a href="properties.html?city=Ranthambore">Ranthambore</a>
+            <a href="properties.html?city=Sariska">Sariska</a>
+            <a href="properties.html?city=Alwar">Alwar</a>
+            <a href="properties.html?city=Siliserh">Siliserh</a>
+            <a href="properties.html?city=Indore">Indore</a>
+            <a href="properties.html?city=Neemuch">Neemuch</a>
+            <a href="properties.html?city=Bhopal">Bhopal</a>
+            <a href="properties.html?city=Delhi%20Road%20(Close%20to%20Delhi)">Delhi Road (Close to Delhi)</a>
+            <a href="properties.html?city=Bhiwadi">Bhiwadi</a>
+            <a href="properties.html?city=Kotputli">Kotputli</a>
+            <a href="properties.html?city=Shahpura">Shahpura</a>
+            <a href="properties.html?city=Ahmedabad">Ahmedabad</a>
+            <a href="properties.html?city=Gandhidham">Gandhidham</a>
+          </div>
+        </details>
+
+        <a href="investments.html">Invest</a>
+        <a href="projects.html">Guides</a>
+        <a href="contact.html">Contact Us</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-outline" data-call-link href="tel:+919145882313">Call Now</a>
+        <button class="mobile-toggle" data-mobile-toggle aria-label="Open menu"><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-shell">
+        <div class="hero-left">
+          <div class="hero-content">
+            <span class="badge">Luxury Property Advisory</span>
+            <h1 class="hero-title">Find Verified Property and Investment Opportunities</h1>
+            <p class="hero-copy">Discover verified residences, plots, and growth-focused opportunities across premium locations.</p>
+            <div class="hero-stats">
+              <div class="hero-stat"><strong data-count-properties>18</strong><span>Properties</span></div>
+              <div class="hero-stat"><strong data-count-investments>14</strong><span>Investments</span></div>
+              <div class="hero-stat"><strong data-count-projects>14</strong><span>Project Docs</span></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hero-right search-card">
+          <h2>Search Property Listings</h2>
+          <p>Search by city, type, budget, and requirement. Results open with premium listings first.</p>
+
+          <div class="purpose-group" data-purpose-group>
+            <button type="button" class="active" data-value="buy">Buy</button>
+            <button type="button" data-value="rent">Rent</button>
+          </div>
+
+          <form id="homeSearchForm" class="search-form">
+            <input type="hidden" name="purpose" value="buy" data-purpose-input>
+            <div class="search-grid">
+              <div class="field">
+                <label for="homeCity">City</label>
+                <select id="homeCity" name="city" data-city-select>
+                  <option value="">Any city</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="homeType">Property Type</label>
+                <select id="homeType" name="type" data-type-select>
+                  <option value="">Any type</option>
+                </select>
+              </div>
+            </div>
+            <div class="search-grid">
+              <div class="field">
+                <label for="homeBudget">Budget</label>
+                <select id="homeBudget" name="budget" data-property-budget-select>
+                  <option value="">Any budget</option>
+                  <option value="100-300">INR 1 Crore to 3 Crore</option>
+                  <option value="300-500">INR 3 Crore to 5 Crore</option>
+                  <option value="500-1000">INR 5 Crore to 10 Crore</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="homeKeyword">Keyword</label>
+                <input id="homeKeyword" name="keyword" type="text" placeholder="Jagatpura, villa, plot">
+              </div>
+            </div>
+            <button class="btn btn-solid" type="submit">Search Properties</button>
+          </form>
+          <div class="popular-searches">
+            <span>Popular:</span>
+            <a href="properties.html?city=Jaipur">Jaipur</a>
+            <a href="properties.html?type=villa">Luxury Villas</a>
+            <a href="properties.html?type=farm-land">Farm Land</a>
+            <a href="investments.html">Investment Deals</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="portal-shortcuts">
+      <div class="container portal-shortcut-grid">
+        <a href="properties.html?purpose=buy">
+          <strong>Buy</strong>
+          <span>Premium homes, plots, villas</span>
+        </a>
+        <a href="properties.html?purpose=rent">
+          <strong>Rent</strong>
+          <span>Luxury rentals from INR 1 Lakh</span>
+        </a>
+        <a href="projects.html">
+          <strong>Projects</strong>
+          <span>Brochures and project documents</span>
+        </a>
+        <a href="contact.html">
+          <strong>Price Guidance</strong>
+          <span>Discuss valuation and budget fit</span>
+        </a>
+        <a href="contact.html">
+          <strong>List Property</strong>
+          <span>Share seller or landlord inventory</span>
+        </a>
+        <a href="contact.html">
+          <strong>Consultant</strong>
+          <span>Talk to Shyama advisor</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="section latest-inventory-section">
+      <div class="container">
+        <div class="featured-head">
+          <div>
+            <span class="badge">Latest Inventory</span>
+            <h2 class="section-title">Newly Added from the July Update</h2>
+            <p class="section-subtitle">The newest verified listings appear here first, ordered from higher to lower asking value.</p>
+          </div>
+          <a class="btn btn-outline" href="properties.html?sort=newest">View All New Listings</a>
+        </div>
+        <div class="property-grid" data-latest-grid></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="featured-head">
+          <div>
+            <span class="badge">Properties</span>
+            <h2 class="section-title">Buy and Rent Listings</h2>
+            <p class="section-subtitle">Handpicked buy and rent opportunities shown from higher value to lower value.</p>
+          </div>
+          <span class="saved-pill" data-saved-count>0 shortlisted | 0 compare</span>
+          <div class="tab-row">
+            <button type="button" class="active" data-featured-tab data-value="buy">Buy</button>
+            <button type="button" data-featured-tab data-value="rent">Rent</button>
+          </div>
+        </div>
+        <div class="property-grid" data-featured-grid></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="featured-head">
+          <div>
+            <span class="badge">Investments</span>
+            <h2 class="section-title">Growth and Yield Opportunities</h2>
+            <p class="section-subtitle">Strategic opportunities designed for long-term growth and steady yield.</p>
+          </div>
+          <a class="btn btn-outline" href="investments.html">View All Investments</a>
+        </div>
+        <div class="property-grid" data-investment-grid></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <span class="badge">Projects</span>
+        <h2 class="section-title">Current Project Portfolio</h2>
+        <div class="project-grid" data-project-grid data-limit="6"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-card">
+        <h3 data-brand>Shyama Luxury Solutions</h3>
+        <p data-tagline>Luxury Property Consultant</p>
+        <p data-address>C-246, Model Town, Malviya Nagar, Jaipur, Rajasthan</p>
+      </div>
+      <div class="footer-card">
+        <h3>Contact</h3>
+        <p><a data-call-link href="tel:+919145882313"><span data-phone-primary>+91 91458 82313</span></a></p>
+        <p><span data-email-primary>Shyamachandawat@shluso.com</span></p>
+      </div>
+      <div class="footer-card">
+        <h3>Quick Links</h3>
+        <p><a href="properties.html">Properties</a></p>
+        <p><a href="investments.html">Investments</a></p>
+        <p><a href="projects.html">Projects</a></p>
+      </div>
+    </div>
+    <div class="container copyright">Copyright <span data-current-year></span> Shyama Luxury Solutions. All rights reserved.</div>
+  </footer>
+
+  <div class="floating-actions">
+    <a class="floating-call" data-call-link href="tel:+919145882313">Call</a>
+    <a class="floating-whatsapp" data-whatsapp-link target="_blank" rel="noopener" href="https://wa.me/message/TB7KS5BC4REBC1">WA</a>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-whatsapp-link]').forEach(function (link) {
+    link.addEventListener('click', function () {
+      gtag('event', 'whatsapp_click', {
+        link_url: this.href,
+        link_text: this.textContent.trim()
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
